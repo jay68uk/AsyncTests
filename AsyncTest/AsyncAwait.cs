@@ -11,11 +11,13 @@ namespace AsyncTest
     {
         public static async Task Call2()
         {
+            var taskId = 1;
             var start = DateTime.Now.Ticks;
             Console.WriteLine($"Start: {start}");
-            for (int i = 0; i < 20000; i += 500)
+            for (long i = 0; i < 20000; i += 2000)
             {
-                await LongTask(i);
+                _ = await LongTask(i, taskId);
+                taskId++;
             }
 
             var end = DateTime.Now.Ticks;
@@ -23,18 +25,22 @@ namespace AsyncTest
             Console.WriteLine($"Difference: {end - start}");
         }
 
-        static async Task<int[]> LongTask(int sleepTime)
+        private static async Task<int> LongTask(long sleepTime, int taskId)
         {
-            var st = await ShortTask(sleepTime);
-            var retVal = new int[3] { Thread.CurrentThread.ManagedThreadId, sleepTime, st.Length };
+            var start = DateTime.Now.Ticks;
 
-            Console.WriteLine($"Current thread: {retVal[0]} Sleep time: {retVal[1]} Moniker: {retVal[2]}");
-            return retVal;
+            Console.WriteLine($"STARTING -- Current thread: {Thread.CurrentThread.ManagedThreadId} Background: {Thread.CurrentThread.IsBackground} Sleep time: {sleepTime} Moniker: LT-{taskId}");
+
+            var st = await ShortTask(sleepTime, taskId);
+
+            Console.WriteLine($"ENDING -- Current thread: {Thread.CurrentThread.ManagedThreadId} Background: {Thread.CurrentThread.IsBackground} Sleep time: {sleepTime} Moniker: LT-{taskId} Duration: {DateTime.Now.Ticks-start}");
+            return taskId;
         }
 
-        static  Task<string> ShortTask(int inString)
+        private static async Task<string> ShortTask(long inString, int taskId)
         {
-            return Task.Run(() => inString.ToString() + inString.ToString().Length);
+            Console.WriteLine($"Current thread: {Thread.CurrentThread.ManagedThreadId} Moniker: ST-{taskId}");
+            return await Task.Run(() => inString.ToString() + inString.ToString().Length);
         }
     }
 }
